@@ -1,0 +1,182 @@
+---
+/**
+ * Minimalist logo wall: a responsive grid of brand tiles, logos only.
+ * No roles/dates/descriptions — the LinkedIn CTA carries the detail.
+ *
+ * Each tile shows the real logo when `logo` points to a file under /public,
+ * otherwise a clean initials mark as the generic placeholder until a logo is
+ * added. Linked tiles open the entity's site; the entity name is the tile's
+ * accessible name (visible caption).
+ */
+import Icon from './Icon.astro';
+
+export interface WallItem {
+  name: string;
+  /** Path under /public (e.g. "/logos/globant.svg"). Initials mark when absent. */
+  logo?: string;
+  /** Entity website; tile becomes a link when present. */
+  url?: string;
+}
+
+interface Props {
+  id: string;
+  eyebrow: string;
+  title: string;
+  items: WallItem[];
+  linkedinUrl: string;
+  linkedinLabel: string;
+}
+
+const { id, eyebrow, title, items, linkedinUrl, linkedinLabel } = Astro.props;
+
+/** First letters of the first two "word" tokens, for the generic mark. */
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter((word) => /^[\p{L}\p{N}]/u.test(word))
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() ?? '')
+    .join('');
+}
+---
+
+<section id={id} class="section">
+  <div class="container">
+    <p class="eyebrow">{eyebrow}</p>
+    <div class="logo-wall__head">
+      <h2 class="section__title">{title}</h2>
+      <a
+        class="logo-wall__more"
+        href={linkedinUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {linkedinLabel}
+        <Icon name="external" size={14} />
+      </a>
+    </div>
+
+    <ul class="logo-wall" role="list">
+      {
+        items.map((item) => {
+          const Tag = item.url ? 'a' : 'div';
+          const linkAttrs = item.url
+            ? { href: item.url, target: '_blank', rel: 'noopener noreferrer' }
+            : {};
+          return (
+            <li>
+              <Tag class="logo-tile" {...linkAttrs}>
+                {item.logo ? (
+                  <img
+                    class="logo-tile__img"
+                    src={item.logo}
+                    alt=""
+                    loading="lazy"
+                    width="120"
+                    height="48"
+                    data-initials={initials(item.name)}
+                  />
+                ) : (
+                  <span class="logo-tile__mark" aria-hidden="true">
+                    {initials(item.name)}
+                  </span>
+                )}
+                <span class="logo-tile__name">{item.name}</span>
+              </Tag>
+            </li>
+          );
+        })
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .logo-wall__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--medano-space-sm);
+  }
+
+  .logo-wall__more {
+    color: var(--medano-accent-base);
+    font-size: var(--medano-text-sm);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--medano-space-3xs, 0.25rem);
+    white-space: nowrap;
+  }
+
+  .logo-wall__more:hover {
+    text-decoration: underline;
+  }
+
+  .logo-wall {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+    gap: var(--medano-space-md);
+  }
+
+  .logo-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--medano-space-sm);
+    min-height: 7.5rem;
+    padding: var(--medano-space-md);
+    border-radius: var(--medano-radius-lg);
+    border-start-start-radius: var(--medano-radius-quiet);
+    background: var(--medano-surface-2);
+    color: inherit;
+    text-decoration: none;
+    transition:
+      background-color var(--medano-duration-fast, 160ms) ease,
+      transform var(--medano-duration-fast, 160ms) ease;
+  }
+
+  a.logo-tile:hover {
+    background: var(--medano-surface-3);
+    transform: translateY(-2px);
+  }
+
+  .logo-tile__img {
+    max-width: 72%;
+    max-height: 2.75rem;
+    object-fit: contain;
+  }
+
+  .logo-tile__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--medano-radius-sm);
+    border-start-start-radius: var(--medano-radius-quiet);
+    background: var(--medano-accent-subtle);
+    color: var(--medano-accent-base);
+    font-weight: var(--medano-weight-semibold, 650);
+    font-size: var(--medano-text-md);
+    letter-spacing: 0.02em;
+  }
+
+  .logo-tile__name {
+    font-size: var(--medano-text-xs);
+    color: var(--medano-ink-muted);
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    a.logo-tile:hover {
+      transform: none;
+    }
+  }
+</style>

@@ -1,0 +1,80 @@
+---
+/**
+ * <head> metadata + JSON-LD structured data.
+ *
+ * Real, machine-readable data (schema.org/Person) plus honest meta tags —
+ * search engines and modern applicant trackers consume schema.org directly.
+ */
+import { profile, experience, skillGroups, PRESENT } from '../data/cv';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const ogImage = new URL('/og.svg', Astro.site).href;
+
+const allSkills = skillGroups.flatMap((group) => group.items);
+const currentRoles = experience.filter((job) => job.end === PRESENT);
+
+const personSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: profile.name,
+  jobTitle: profile.role,
+  description: profile.about[0],
+  email: `mailto:${profile.email}`,
+  url: canonical,
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'Bahía Blanca',
+    addressRegion: 'Buenos Aires',
+    addressCountry: 'AR',
+  },
+  worksFor: currentRoles.map((job) => ({
+    '@type': 'Organization',
+    name: job.company,
+  })),
+  knowsAbout: allSkills,
+  sameAs: profile.social
+    .filter((link) => link.key !== 'email')
+    .map((link) => link.url),
+};
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="canonical" href={canonical} />
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<meta name="author" content={profile.name} />
+<meta name="keywords" content={allSkills.join(', ')} />
+<meta name="robots" content="index, follow" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="profile" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={ogImage} />
+<meta property="og:locale" content="es_AR" />
+<meta property="profile:first_name" content={profile.firstName} />
+<meta property="profile:last_name" content={profile.lastName} />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImage} />
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="sitemap" href="/sitemap-index.xml" />
+
+<script
+  is:inline
+  type="application/ld+json"
+  set:html={JSON.stringify(personSchema)}
+/>

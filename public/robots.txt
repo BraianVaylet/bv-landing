@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://bv-landingpage.vercel.app/sitemap-index.xml

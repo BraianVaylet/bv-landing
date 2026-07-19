@@ -1,0 +1,50 @@
+---
+/**
+ * Base HTML shell: <head> metadata, no-flash theme bootstrap, skip link.
+ */
+import '../styles/global.css';
+import Seo from '../components/Seo.astro';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <Seo title={title} description={description} />
+    <!--
+      Stamp an explicit theme before paint: stored preference wins, then the
+      OS setting. Always setting data-theme keeps medano's vars.css and the
+      scene palette in agreement (no reliance on the @media fallback once JS
+      runs). Inline + blocking on purpose; it's tiny.
+    -->
+    <script is:inline>
+      (function () {
+        var theme = 'dark';
+        try {
+          var stored = localStorage.getItem('bv-theme');
+          if (stored === 'light' || stored === 'dark') {
+            theme = stored;
+          } else if (
+            window.matchMedia &&
+            window.matchMedia('(prefers-color-scheme: light)').matches
+          ) {
+            theme = 'light';
+          }
+        } catch (e) {
+          /* ignore */
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+    <slot />
+  </body>
+</html>

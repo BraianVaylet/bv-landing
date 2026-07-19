@@ -1,0 +1,52 @@
+---
+/**
+ * Dark/light switch. The Base layout bootstrap stamps the initial theme;
+ * this button just flips `data-theme` and persists the choice. The dune
+ * scene picks up the change via its own MutationObserver.
+ */
+import Icon from './Icon.astro';
+---
+
+<button
+  type="button"
+  class="theme-toggle medano-button"
+  data-variant="ghost"
+  data-size="sm"
+  data-theme-toggle
+  aria-label="Cambiar tema"
+>
+  <Icon name="moon" class="theme-toggle__icon theme-toggle__icon--moon" />
+  <Icon name="sun" class="theme-toggle__icon theme-toggle__icon--sun" />
+</button>
+
+<script>
+  const STORAGE_KEY = 'bv-theme';
+
+  document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      try {
+        localStorage.setItem(STORAGE_KEY, next);
+      } catch {
+        // Private mode / blocked storage: theme still applies for the session.
+      }
+    });
+  });
+</script>
+
+<style>
+  /* Show the icon of the theme you'd switch TO: sun while dark, moon while light. */
+  :global(.theme-toggle__icon--moon) {
+    display: none;
+  }
+
+  :global([data-theme='light']) .theme-toggle :global(.theme-toggle__icon--moon) {
+    display: initial;
+  }
+
+  :global([data-theme='light']) .theme-toggle :global(.theme-toggle__icon--sun) {
+    display: none;
+  }
+</style>

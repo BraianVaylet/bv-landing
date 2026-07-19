@@ -1,0 +1,28 @@
+{
+  "name": "bv-landingpage",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Landing page / portfolio de Braian Vaylet — Astro + medano-ui, desplegado en Vercel.",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "check": "astro check"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.3",
+    "@medano-ui/css": "^1.0.3",
+    "@medano-ui/fonts": "^1.0.3",
+    "@medano-ui/react": "^1.0.3",
+    "@medano-ui/tokens": "^1.0.3",
+    "astro": "^7.0.9"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "sharp": "^0.35.3",
+    "typescript": "^6.0.3"
+  }
+}

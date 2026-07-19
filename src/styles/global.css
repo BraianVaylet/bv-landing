@@ -1,0 +1,167 @@
+/*
+ * Global styles. Canonical medano-ui CSS order (from the design system docs):
+ * fonts -> token vars -> base reset -> component classes -> app styles.
+ * We use the `.medano-*` class contract directly on Astro markup (documented
+ * escape hatch) instead of shipping React for a fully static page.
+ */
+@import '@medano-ui/fonts/medano-sans.css';
+@import '@medano-ui/tokens/vars.css';
+@import '@medano-ui/css/base.css';
+@import '@medano-ui/react/styles.css';
+
+/* ---------------------------------------------------------------------------
+ * Dune scene palette.
+ *
+ * Night (dark theme) is the default, matching medano's dark-first tokens.
+ * Values are hex (not var() references) on purpose: the canvas particle
+ * system reads them with getComputedStyle and needs colors every canvas
+ * implementation can parse. Hex values mirror the medano ramps:
+ * brasa (accent coral), tierra (dark warm neutrals), arena (light sand).
+ * ------------------------------------------------------------------------- */
+:root {
+  --scene-sky-top: #17150f;
+  --scene-sky-bottom: #201e1a; /* = tierra-0 / surface-0 dark */
+  --scene-moon-lit: #f1eee6; /* = ink-primary dark */
+  --scene-moon-dark: rgba(241, 238, 230, 0.09); /* earthshine disc */
+  --scene-moon-glow: rgba(235, 173, 151, 0.28); /* warm brasa halo */
+  --scene-dune-far-1: #2e2b26; /* tierra-2 */
+  --scene-dune-far-2: #35322c; /* tierra-3 */
+  --scene-dune-far-3: #3d3933; /* tierra-4 */
+  --scene-dune-near-1: #8e3a22; /* brasa-700 (back) */
+  --scene-dune-near-2: #a5492b; /* brasa-600 */
+  --scene-dune-near-3: #c96442; /* brasa-400 (front, brand accent) */
+  --scene-sand-a: #de876b; /* brasa-200 — lit grains */
+  --scene-sand-b: #ebad97; /* brasa-100 — bright grains */
+}
+
+/* Day scene: pale daytime moon (same phase logic, only colors change). */
+[data-theme='light'] {
+  --scene-sky-top: #f3ede1;
+  --scene-sky-bottom: #faf9f5; /* = arena-0 / surface-0 light */
+  --scene-moon-lit: #fffdf7;
+  --scene-moon-dark: rgba(60, 50, 40, 0.06);
+  --scene-moon-glow: rgba(255, 253, 247, 0.5);
+  --scene-dune-far-1: #e6dcc6;
+  --scene-dune-far-2: #dccfb4;
+  --scene-dune-far-3: #d2c5a5;
+  --scene-dune-near-1: #b55334; /* brasa-500 (back) */
+  --scene-dune-near-2: #a5492b; /* brasa-600 */
+  --scene-dune-near-3: #8e3a22; /* brasa-700 (front — darker for contrast) */
+  --scene-sand-a: #a5492b;
+  --scene-sand-b: #8e3a22;
+}
+
+/*
+ * No-JS fallback: without the theme bootstrap stamping data-theme, medano's
+ * vars.css switches to light via prefers-color-scheme — mirror that for the
+ * scene so both palettes stay in sync. Duplicates the block above by design
+ * (CSS can't reuse declaration blocks without a preprocessor).
+ */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --scene-sky-top: #f3ede1;
+    --scene-sky-bottom: #faf9f5;
+    --scene-moon-lit: #fffdf7;
+    --scene-moon-dark: rgba(60, 50, 40, 0.06);
+    --scene-moon-glow: rgba(255, 253, 247, 0.5);
+    --scene-dune-far-1: #e6dcc6;
+    --scene-dune-far-2: #dccfb4;
+    --scene-dune-far-3: #d2c5a5;
+    --scene-dune-near-1: #b55334;
+    --scene-dune-near-2: #a5492b;
+    --scene-dune-near-3: #8e3a22;
+    --scene-sand-a: #a5492b;
+    --scene-sand-b: #8e3a22;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * App-level layout utilities
+ * ------------------------------------------------------------------------- */
+:root {
+  --content-width: 68rem;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  background: var(--medano-surface-0);
+  color: var(--medano-ink-primary);
+  font-family: var(--medano-font-sans);
+}
+
+.container {
+  width: min(100% - 2 * var(--medano-space-lg), var(--content-width));
+  margin-inline: auto;
+}
+
+.section {
+  padding-block: var(--medano-space-4xl);
+}
+
+.section__title {
+  font-size: var(--medano-text-2xl);
+  font-weight: var(--medano-weight-semibold, 650);
+  margin-block: 0 var(--medano-space-xl);
+}
+
+.eyebrow {
+  color: var(--medano-accent-base);
+  font-size: var(--medano-text-sm);
+  font-weight: var(--medano-weight-medium, 500);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Anchor sections land below the sticky header. */
+[id] {
+  scroll-margin-top: 5rem;
+}
+
+/* `.medano-button` is written for <button>; neutralize anchor defaults. */
+a.medano-button {
+  text-decoration: none;
+}
+
+/* Visible focus for keyboard users, on brand. */
+:focus-visible {
+  outline: 2px solid var(--medano-accent-base);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: fixed;
+  top: var(--medano-space-sm);
+  left: var(--medano-space-sm);
+  z-index: var(--medano-z-toast, 700);
+  padding: var(--medano-space-sm) var(--medano-space-md);
+  border-radius: var(--medano-radius-sm);
+  background: var(--medano-accent-base);
+  color: var(--medano-ink-on-accent);
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}

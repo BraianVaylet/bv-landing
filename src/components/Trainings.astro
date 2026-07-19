@@ -1,0 +1,23 @@
+---
+/**
+ * Capacitaciones — minimalist logo wall. Detail lives on LinkedIn.
+ */
+import LogoWall, { type WallItem } from './LogoWall.astro';
+import { trainings, profile } from '../data/cv';
+
+const linkedin = profile.social.find((link) => link.key === 'linkedin');
+const items: WallItem[] = trainings.map((training) => ({
+  name: training.institution,
+  logo: training.logo,
+  url: training.url,
+}));
+---
+
+<LogoWall
+  id="capacitaciones"
+  eyebrow="Formación"
+  title="Capacitaciones"
+  items={items}
+  linkedinUrl={linkedin?.url ?? 'https://www.linkedin.com/in/braianvaylet/details/certifications/'}
+  linkedinLabel="Ver formación en LinkedIn"
+/>

@@ -1,0 +1,24 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+import Experience from '../components/Experience.astro';
+import Trainings from '../components/Trainings.astro';
+import Projects from '../components/Projects.astro';
+import Footer from '../components/Footer.astro';
+import { profile } from '../data/cv';
+
+const title = `${profile.name} — ${profile.headline}`;
+const description = profile.about[0];
+---
+
+<Base title={title} description={description}>
+  <Header />
+  <main id="main">
+    <Hero />
+    <Experience />
+    <Trainings />
+    <Projects />
+  </main>
+  <Footer />
+</Base>

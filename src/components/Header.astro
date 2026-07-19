@@ -1,0 +1,110 @@
+---
+/**
+ * Sticky top bar: monogram/home link, section anchors, social + contact
+ * icon links and the theme toggle.
+ */
+import { profile } from '../data/cv';
+import Icon from './Icon.astro';
+import ThemeToggle from './ThemeToggle.astro';
+
+const sectionLinks = [
+  { href: '#experiencia', label: 'Experiencia' },
+  { href: '#capacitaciones', label: 'Capacitaciones' },
+  { href: '#proyectos', label: 'Proyectos' },
+];
+---
+
+<header class="site-header">
+  <div class="site-header__inner container">
+    <a class="site-header__brand" href="#inicio" aria-label="Ir al inicio">BV.</a>
+
+    <nav class="site-header__nav" aria-label="Secciones">
+      {sectionLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+    </nav>
+
+    <nav class="site-header__social" aria-label="Contacto y redes">
+      {
+        profile.social.map((link) => (
+          <a
+            href={link.url}
+            aria-label={link.label}
+            {...(link.key !== 'email'
+              ? { target: '_blank', rel: 'noopener noreferrer' }
+              : {})}
+          >
+            <Icon name={link.key} />
+          </a>
+        ))
+      }
+      <ThemeToggle />
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: var(--medano-z-sticky, 300);
+    background: color-mix(in oklab, var(--medano-surface-0) 82%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--medano-surface-3);
+  }
+
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    gap: var(--medano-space-lg);
+    min-height: 3.5rem;
+  }
+
+  .site-header__brand {
+    font-weight: var(--medano-weight-semibold, 650);
+    font-size: var(--medano-text-lg);
+    color: var(--medano-accent-base);
+    text-decoration: none;
+  }
+
+  .site-header__nav {
+    display: flex;
+    gap: var(--medano-space-md);
+  }
+
+  .site-header__nav a {
+    color: var(--medano-ink-secondary);
+    text-decoration: none;
+    font-size: var(--medano-text-sm);
+  }
+
+  .site-header__nav a:hover {
+    color: var(--medano-ink-primary);
+  }
+
+  .site-header__social {
+    display: flex;
+    align-items: center;
+    gap: var(--medano-space-2xs);
+    margin-inline-start: auto;
+  }
+
+  .site-header__social a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--medano-radius-sm);
+    color: var(--medano-ink-secondary);
+  }
+
+  .site-header__social a:hover {
+    color: var(--medano-ink-primary);
+    background: var(--medano-surface-2);
+  }
+
+  @media (max-width: 40rem) {
+    .site-header__nav {
+      display: none;
+    }
+  }
+</style>

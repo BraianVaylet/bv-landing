@@ -1,0 +1,93 @@
+---
+/**
+ * Personal projects — hand-authored list from `src/data/cv.ts`. Each entry has
+ * a logo (initials monogram fallback), title, description and a GitHub link.
+ */
+import { projects } from '../data/cv';
+import LogoOrMonogram from './LogoOrMonogram.astro';
+import Icon from './Icon.astro';
+---
+
+<section id="proyectos" class="section">
+  <div class="container">
+    <p class="eyebrow">Familia bv</p>
+    <h2 class="section__title">Proyectos personales</h2>
+
+    <ul class="project-list" role="list">
+      {
+        projects.map((project) => (
+          <li class="medano-card project-card" data-elevation="1">
+            <div class="project-card__head">
+              <LogoOrMonogram name={project.title} logo={project.logo} size={44} />
+              <h3 class="project-card__title">{project.title}</h3>
+            </div>
+            {project.description && (
+              <p class="project-card__description">{project.description}</p>
+            )}
+            <a
+              class="project-card__link"
+              href={project.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Repositorio de ${project.title} en GitHub`}
+            >
+              <Icon name="github" size={18} />
+              <span>Ver en GitHub</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .project-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    gap: var(--medano-space-md);
+  }
+
+  .project-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--medano-space-sm);
+    padding: var(--medano-space-md);
+  }
+
+  .project-card__head {
+    display: flex;
+    align-items: center;
+    gap: var(--medano-space-sm);
+  }
+
+  .project-card__title {
+    font-size: var(--medano-text-md);
+    font-weight: var(--medano-weight-semibold, 650);
+    margin: 0;
+  }
+
+  .project-card__description {
+    color: var(--medano-ink-secondary);
+    font-size: var(--medano-text-sm);
+    line-height: 1.6;
+    margin: 0;
+    flex-grow: 1;
+  }
+
+  .project-card__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--medano-space-2xs);
+    margin-top: auto;
+    font-size: var(--medano-text-sm);
+    color: var(--medano-ink-secondary);
+  }
+
+  .project-card__link:hover {
+    color: var(--medano-accent-base);
+  }
+</style>

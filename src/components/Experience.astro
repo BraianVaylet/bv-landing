@@ -1,0 +1,23 @@
+---
+/**
+ * Experiencia laboral — minimalist logo wall. Detail lives on LinkedIn.
+ */
+import LogoWall, { type WallItem } from './LogoWall.astro';
+import { experience, profile } from '../data/cv';
+
+const linkedin = profile.social.find((link) => link.key === 'linkedin');
+const items: WallItem[] = experience.map((job) => ({
+  name: job.company,
+  logo: job.logo,
+  url: job.url,
+}));
+---
+
+<LogoWall
+  id="experiencia"
+  eyebrow="Trayectoria"
+  title="Experiencia laboral"
+  items={items}
+  linkedinUrl={linkedin?.url ?? 'https://www.linkedin.com/in/braianvaylet/details/experience/'} 
+  linkedinLabel="Ver experiencia en LinkedIn"
+/>

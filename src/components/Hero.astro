@@ -1,0 +1,81 @@
+---
+/**
+ * Presentation section. Taller than the viewport with a sticky inner stage:
+ * the user scrolls "through" the hero while the moon wanes and sets behind
+ * the dunes, then the page continues normally.
+ */
+import { profile } from '../data/cv';
+import DuneScene from './scene/DuneScene.astro';
+---
+
+<section id="inicio" class="hero" data-hero>
+  <div class="hero__stage">
+    <DuneScene />
+    <div class="hero__content container">
+      <p class="eyebrow">{profile.headline}</p>
+      <h1 class="hero__title">
+        Hola, soy <span class="hero__name">{profile.firstName} {profile.lastName}</span>
+      </h1>
+      <p class="hero__tagline">{profile.about[0]}</p>
+      <div class="hero__actions">
+        <a class="medano-button" data-variant="primary" data-size="lg" href="#proyectos">
+          Ver proyectos
+        </a>
+        <a
+          class="medano-button"
+          data-variant="secondary"
+          data-size="lg"
+          href={`mailto:${profile.email}`}
+        >
+          Contactame
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Extra height = scroll room for the moon animation (stage stays pinned). */
+  .hero {
+    height: 175dvh;
+  }
+
+  .hero__stage {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .hero__content {
+    position: relative;
+    z-index: 1;
+    padding-top: 20dvh;
+    max-width: min(42rem, 100%);
+  }
+
+  .hero__title {
+    font-size: clamp(2.2rem, 6vw, 3.6rem);
+    font-weight: var(--medano-weight-semibold, 650);
+    line-height: 1.1;
+    margin-block: var(--medano-space-md) var(--medano-space-lg);
+  }
+
+  .hero__name {
+    color: var(--medano-accent-base);
+  }
+
+  .hero__tagline {
+    color: var(--medano-ink-secondary);
+    font-size: var(--medano-text-lg);
+    line-height: 1.6;
+    margin-block: 0 var(--medano-space-xl);
+    max-width: 36rem;
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--medano-space-sm);
+  }
+</style>

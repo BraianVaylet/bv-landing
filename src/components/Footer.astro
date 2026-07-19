@@ -1,0 +1,102 @@
+---
+/**
+ * Footer: contact recap, social links and colophon.
+ */
+import { profile } from '../data/cv';
+import Icon from './Icon.astro';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container site-footer__inner">
+    <div>
+      <p class="site-footer__name">{profile.name}</p>
+      <p class="site-footer__meta">
+        {profile.location} · <a href={`mailto:${profile.email}`}>{profile.email}</a>
+      </p>
+    </div>
+
+    <nav class="site-footer__social" aria-label="Redes sociales">
+      {
+        profile.social
+          .filter((link) => link.key !== 'email')
+          .map((link) => (
+            <a
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={link.label}
+            >
+              <Icon name={link.key} />
+            </a>
+          ))
+      }
+    </nav>
+  </div>
+
+  <div class="container site-footer__colophon">
+    <p>© {year} {profile.name}. Hecho con Astro y medano-ui.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--medano-surface-3);
+    padding-block: var(--medano-space-2xl) var(--medano-space-xl);
+    background: var(--medano-surface-1);
+  }
+
+  .site-footer__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--medano-space-lg);
+  }
+
+  .site-footer__name {
+    font-weight: var(--medano-weight-semibold, 650);
+    margin-block: 0 var(--medano-space-2xs);
+  }
+
+  .site-footer__meta {
+    color: var(--medano-ink-muted);
+    font-size: var(--medano-text-sm);
+    margin-block: 0;
+  }
+
+  .site-footer__meta a {
+    color: var(--medano-ink-secondary);
+  }
+
+  .site-footer__social {
+    display: flex;
+    gap: var(--medano-space-xs);
+  }
+
+  .site-footer__social a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--medano-radius-sm);
+    color: var(--medano-ink-secondary);
+  }
+
+  .site-footer__social a:hover {
+    color: var(--medano-ink-primary);
+    background: var(--medano-surface-3);
+  }
+
+  .site-footer__colophon {
+    margin-top: var(--medano-space-lg);
+    color: var(--medano-ink-ghost);
+    font-size: var(--medano-text-xs);
+  }
+
+  .site-footer__colophon p {
+    margin: 0;
+  }
+</style>

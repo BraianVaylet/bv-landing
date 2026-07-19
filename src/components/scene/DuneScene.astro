@@ -1,0 +1,113 @@
+---
+/**
+ * Animated hero background: sky gradient, phase-shifting moon (scroll-linked),
+ * two SVG dune layers and a canvas of wind-blown sand between them.
+ *
+ * Purely decorative (aria-hidden). Server-renders a full moon so the scene
+ * looks right before hydration and without JavaScript; scene.ts takes over on
+ * the client.
+ */
+import { DUNE_VIEWBOX, FAR_DUNES, NEAR_DUNES } from './geometry';
+import { MOON_RADIUS, moonPathD } from './moon';
+
+const duneViewBox = `0 0 ${DUNE_VIEWBOX.width} ${DUNE_VIEWBOX.height}`;
+const moonMargin = 4;
+const moonViewBox = [
+  -MOON_RADIUS - moonMargin,
+  -MOON_RADIUS - moonMargin,
+  (MOON_RADIUS + moonMargin) * 2,
+  (MOON_RADIUS + moonMargin) * 2,
+].join(' ');
+const fullMoonPath = moonPathD(0);
+---
+
+<div class="dune-scene" data-dune-scene aria-hidden="true">
+  <svg class="scene-moon" data-scene-moon viewBox={moonViewBox}>
+    <circle class="moon-disc" r={MOON_RADIUS}></circle>
+    <path class="moon-lit" data-moon-lit d={fullMoonPath}></path>
+  </svg>
+
+  <svg
+    class="dune-layer dune-layer--far"
+    data-dune-layer="far"
+    viewBox={duneViewBox}
+    preserveAspectRatio="none"
+  >
+    {FAR_DUNES.map((dune) => <path d={dune.d} style={`fill: var(${dune.colorVar})`} />)}
+  </svg>
+
+  <canvas class="scene-canvas" data-scene-canvas></canvas>
+
+  <svg
+    class="dune-layer dune-layer--near"
+    data-dune-layer="near"
+    viewBox={duneViewBox}
+    preserveAspectRatio="none"
+  >
+    {NEAR_DUNES.map((dune) => <path d={dune.d} style={`fill: var(${dune.colorVar})`} />)}
+  </svg>
+</div>
+
+<script>
+  import { initDuneScene } from './scene';
+
+  document
+    .querySelectorAll<HTMLElement>('[data-dune-scene]')
+    .forEach((scene) => initDuneScene(scene));
+</script>
+
+<style>
+  .dune-scene {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: linear-gradient(
+      to bottom,
+      var(--scene-sky-top),
+      var(--scene-sky-bottom)
+    );
+  }
+
+  .scene-moon {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: clamp(76px, 14vmin, 148px);
+    aspect-ratio: 1;
+    will-change: transform;
+    /* No-JS resting spot; scene.ts overrides with precise px transforms. */
+    transform: translate3d(calc(72vw - 50%), calc(18vh - 50%), 0);
+    filter: drop-shadow(0 0 26px var(--scene-moon-glow));
+  }
+
+  .moon-disc {
+    fill: var(--scene-moon-dark);
+  }
+
+  .moon-lit {
+    fill: var(--scene-moon-lit);
+  }
+
+  .dune-layer {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    display: block;
+  }
+
+  .dune-layer--far {
+    height: 58%;
+  }
+
+  .dune-layer--near {
+    height: 42%;
+  }
+
+  .scene-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+</style>

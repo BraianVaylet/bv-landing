@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+  <!-- TODO: replace with a 1200x630 PNG for reliable LinkedIn/X previews. -->
+  <rect width="1200" height="630" fill="#201e1a"/>
+  <circle cx="880" cy="180" r="90" fill="#f1eee6"/>
+  <path d="M0 470 Q 260 330 520 430 Q 760 520 1200 400 L 1200 630 L 0 630 Z" fill="#8e3a22"/>
+  <path d="M0 540 Q 320 440 640 510 Q 920 570 1200 500 L 1200 630 L 0 630 Z" fill="#c96442"/>
+  <text x="80" y="240" fill="#f1eee6" font-size="64" font-weight="650">Braian D. Vaylet</text>
+  <text x="80" y="310" fill="#de876b" font-size="36">Web UI Developer Senior</text>
+  <text x="80" y="370" fill="#bcb7ad" font-size="28">React · Next.js · TypeScript · Astro</text>
+</svg>

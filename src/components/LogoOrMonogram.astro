@@ -1,0 +1,69 @@
+---
+/**
+ * Entity logo with a monogram fallback: renders the image when a logo path
+ * is provided, otherwise the entity's initials on a warm accent tile.
+ * Decorative — the entity name is always visible next to it in the cards.
+ */
+interface Props {
+  name: string;
+  logo?: string;
+  size?: number;
+}
+
+const { name, logo, size = 44 } = Astro.props;
+
+const initials = name
+  .split(/\s+/)
+  .filter((word) => /^[\p{L}\p{N}]/u.test(word))
+  .slice(0, 2)
+  .map((word) => word[0]?.toUpperCase() ?? '')
+  .join('');
+
+const dimension = `${size}px`;
+---
+
+{
+  logo ? (
+    <img
+      class="entity-logo"
+      src={logo}
+      alt=""
+      width={size}
+      height={size}
+      loading="lazy"
+      style={`--logo-size: ${dimension}`}
+    />
+  ) : (
+    <span class="entity-monogram" aria-hidden="true" style={`--logo-size: ${dimension}`}>
+      {initials}
+    </span>
+  )
+}
+
+<style>
+  .entity-logo,
+  .entity-monogram {
+    width: var(--logo-size);
+    height: var(--logo-size);
+    border-radius: var(--medano-radius-sm);
+    border-start-start-radius: var(--medano-radius-quiet);
+    flex-shrink: 0;
+  }
+
+  .entity-logo {
+    object-fit: contain;
+    background: var(--medano-surface-4);
+    padding: 4px;
+  }
+
+  .entity-monogram {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--medano-accent-subtle);
+    color: var(--medano-accent-base);
+    font-weight: var(--medano-weight-semibold, 650);
+    font-size: calc(var(--logo-size) * 0.38);
+    letter-spacing: 0.02em;
+  }
+</style>

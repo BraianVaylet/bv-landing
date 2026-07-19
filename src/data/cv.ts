@@ -75,8 +75,7 @@ export const profile = {
   /** Availability signal for recruiters — flip to false when not looking. */
   openToWork: true,
   about: [
-    'Web UI Developer con más de 5 años de experiencia construyendo productos digitales. Actualmente trabajo como Web UI Developer Senior en Globant y doy clases de React como tutor en Coderhouse.',
-    'Me especializo en frontend con React, Next.js y TypeScript, con foco en accesibilidad, performance y código mantenible. También exploro desarrollo Web3 y Smart Contracts con Solidity.',
+    "Desarrollador de Software con más de 6 años de experiencia creando productos digitales modernos, escalables y centrados en la experiencia del usuario. He colaborado con empresas y startups, desarrollando soluciones de alto impacto junto a equipos multidisciplinarios."
   ],
   social: [
     {

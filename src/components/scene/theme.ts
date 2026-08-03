@@ -75,10 +75,13 @@ interface ParsedColor {
 /** Parse `#hex` or `rgb()/rgba()` into working-space color + alpha. */
 function parseColor(raw: string, fallback: string): ParsedColor {
   const value = raw.trim() || fallback;
-  const rgba = value.match(
-    /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)/,
-  );
   const color = new THREE.Color();
+
+  // rgb()/rgba(), both comma and modern `r g b / a` syntax. The production
+  // CSS minifier rewrites rgba() literals, so every form must parse.
+  const rgba = value.match(
+    /rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)\s*(?:[,/]\s*([\d.%]+)\s*)?\)/,
+  );
   if (rgba) {
     color.setRGB(
       Number(rgba[1]) / 255,
@@ -86,8 +89,34 @@ function parseColor(raw: string, fallback: string): ParsedColor {
       Number(rgba[3]) / 255,
       THREE.SRGBColorSpace,
     );
-    return { color, alpha: rgba[4] === undefined ? 1 : Number(rgba[4]) };
+    let alpha = 1;
+    if (rgba[4] !== undefined) {
+      alpha = rgba[4].endsWith('%')
+        ? Number(rgba[4].slice(0, -1)) / 100
+        : Number(rgba[4]);
+    }
+    return { color, alpha };
   }
+
+  // #rrggbbaa / #rgba: minifiers emit these for colors with alpha
+  // (e.g. `rgba(235, 173, 151, 0.28)` -> `#ebad9747`); THREE.Color rejects
+  // them, so split the alpha byte off manually.
+  const hex8 = value.match(/^#([0-9a-f]{6})([0-9a-f]{2})$/i);
+  if (hex8) {
+    color.setHex(parseInt(hex8[1]!, 16), THREE.SRGBColorSpace);
+    return { color, alpha: parseInt(hex8[2]!, 16) / 255 };
+  }
+  const hex4 = value.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])([0-9a-f])$/i);
+  if (hex4) {
+    color.setRGB(
+      parseInt(hex4[1]! + hex4[1]!, 16) / 255,
+      parseInt(hex4[2]! + hex4[2]!, 16) / 255,
+      parseInt(hex4[3]! + hex4[3]!, 16) / 255,
+      THREE.SRGBColorSpace,
+    );
+    return { color, alpha: parseInt(hex4[4]! + hex4[4]!, 16) / 255 };
+  }
+
   color.set(value);
   return { color, alpha: 1 };
 }

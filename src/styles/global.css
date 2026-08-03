@@ -34,13 +34,14 @@
   --scene-sand-b: #ebad97; /* brasa-100 — bright grains */
 }
 
-/* Day scene: pale daytime moon (same phase logic, only colors change). */
+/* Day scene: the moon becomes a SUN over a beige daytime sky; the WebGL
+ * scene switches to day mode (no phases) via these colors. */
 [data-theme='light'] {
-  --scene-sky-top: #f3ede1;
-  --scene-sky-bottom: #faf9f5; /* = arena-0 / surface-0 light */
-  --scene-moon-lit: #fffdf7;
+  --scene-sky-top: #ecdcbd; /* warm beige zenith */
+  --scene-sky-bottom: #f6eedd; /* pale sand horizon */
+  --scene-moon-lit: #fff4d8; /* sun disc */
   --scene-moon-dark: rgba(60, 50, 40, 0.06);
-  --scene-moon-glow: rgba(255, 253, 247, 0.5);
+  --scene-moon-glow: rgba(242, 190, 120, 0.55); /* golden halo */
   --scene-dune-far-1: #e6dcc6;
   --scene-dune-far-2: #dccfb4;
   --scene-dune-far-3: #d2c5a5;
@@ -59,11 +60,11 @@
  */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) {
-    --scene-sky-top: #f3ede1;
-    --scene-sky-bottom: #faf9f5;
-    --scene-moon-lit: #fffdf7;
+    --scene-sky-top: #ecdcbd;
+    --scene-sky-bottom: #f6eedd;
+    --scene-moon-lit: #fff4d8;
     --scene-moon-dark: rgba(60, 50, 40, 0.06);
-    --scene-moon-glow: rgba(255, 253, 247, 0.5);
+    --scene-moon-glow: rgba(242, 190, 120, 0.55);
     --scene-dune-far-1: #e6dcc6;
     --scene-dune-far-2: #dccfb4;
     --scene-dune-far-3: #d2c5a5;

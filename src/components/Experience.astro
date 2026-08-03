@@ -1,23 +1,153 @@
 ---
 /**
- * Experiencia laboral — minimalist logo wall. Detail lives on LinkedIn.
+ * Experiencia laboral — role-first list.
+ *
+ * The wall of logos this replaced answered "where" and threw `job.role` away at
+ * the `.map()`. A recruiter screening for seniority needs the title first and
+ * the employer second, so the row leads with the role and keeps the logo as
+ * recognition support. Capacitaciones stays a logo wall on purpose: that
+ * section really is about *where*, and the two sections should not look alike.
+ *
+ * There are no dates in `cv.ts` and none may be invented, so the only
+ * chronology shown is the ember mark on the current role.
  */
-import LogoWall, { type WallItem } from './LogoWall.astro';
+import LogoOrMonogram from './LogoOrMonogram.astro';
+import Icon from './Icon.astro';
 import { experience, profile } from '../data/cv';
 
 const linkedin = profile.social.find((link) => link.key === 'linkedin');
-const items: WallItem[] = experience.map((job) => ({
-  name: job.company,
-  logo: job.logo,
-  url: job.url,
-}));
+/** Deep-link into the experience tab so the CTA lands on what it promises. */
+const experienceUrl = linkedin
+  ? `${linkedin.url.replace(/\/$/, '')}/details/experience/`
+  : 'https://www.linkedin.com/in/braianvaylet/details/experience/';
 ---
 
-<LogoWall
-  id="experiencia"
-  eyebrow="Trayectoria"
-  title="Experiencia laboral"
-  items={items}
-  linkedinUrl={linkedin?.url ?? 'https://www.linkedin.com/in/braianvaylet/details/experience/'} 
-  linkedinLabel="Ver experiencia en LinkedIn"
-/>
+<section id="experiencia" class="section">
+  <div class="container">
+    <p class="eyebrow">Trayectoria</p>
+    <div class="roles__head">
+      <h2 class="section__title">Experiencia laboral</h2>
+      <a
+        class="roles__more"
+        href={experienceUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Ver experiencia en LinkedIn
+        <Icon name="external" size={14} />
+      </a>
+    </div>
+
+    <ol class="roles" role="list">
+      {
+        experience.map((job) => (
+          <li class="role">
+            <LogoOrMonogram name={job.company} logo={job.logo || undefined} size={40} />
+            <div class="role__body">
+              <h3 class="role__title">{job.role}</h3>
+              <p class="role__company">
+                <span>{job.company}</span>
+                {job.current && (
+                  <span class="role__now">
+                    <span class="role__ember" aria-hidden="true" />
+                    Actualmente
+                  </span>
+                )}
+              </p>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<style>
+  /* Owns the gap to the grid so it stays 2rem whether or not the head wraps. */
+  .roles__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--medano-space-sm);
+    margin-block-end: var(--medano-space-xl);
+  }
+
+  .roles__head .section__title {
+    margin-block-end: 0;
+  }
+
+  .roles__more {
+    color: var(--medano-accent-base);
+    font-size: var(--medano-text-sm);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--medano-space-3xs, 0.25rem);
+    white-space: nowrap;
+  }
+
+  .roles__more:hover {
+    text-decoration: underline;
+  }
+
+  .roles {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+    gap: var(--medano-space-md);
+  }
+
+  .role {
+    display: flex;
+    align-items: center;
+    gap: var(--medano-space-sm);
+    padding: var(--medano-space-sm) var(--medano-space-md);
+    border-radius: var(--medano-radius-lg);
+    border-start-start-radius: var(--medano-radius-quiet);
+    background: var(--medano-surface-2);
+    box-shadow: var(--medano-halo-edge);
+  }
+
+  .role__body {
+    min-width: 0;
+  }
+
+  .role__title {
+    font-size: var(--medano-text-md);
+    font-weight: var(--medano-weight-semibold, 650);
+    line-height: 1.3;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .role__company {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--medano-space-xs);
+    color: var(--medano-ink-secondary);
+    font-size: var(--medano-text-sm);
+    line-height: 1.4;
+    margin: var(--medano-space-3xs, 0.125rem) 0 0;
+  }
+
+  /* The page's only chronology — there are no dates to show. */
+  .role__now {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--medano-space-2xs);
+    color: var(--medano-accent-base);
+    font-size: var(--medano-text-xs);
+  }
+
+  .role__ember {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: var(--medano-radius-full);
+    background: var(--medano-accent-base);
+    flex-shrink: 0;
+  }
+</style>

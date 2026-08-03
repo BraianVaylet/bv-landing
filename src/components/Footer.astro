@@ -1,27 +1,73 @@
 ---
 /**
- * Footer: contact recap, social links and colophon.
+ * Closing block, not a sign-off. The page's job is contact, so the last thing
+ * a reader meets is the availability signal, the address itself in readable
+ * ink, a way to take it without typing, and the second channel — LinkedIn —
+ * for anyone who would rather message than mail.
  */
 import { profile } from '../data/cv';
 import Icon from './Icon.astro';
 
 const year = new Date().getFullYear();
+const linkedin = profile.social.find((link) => link.key === 'linkedin');
+/** Profiles only — the address gets its own treatment above. */
+const profileLinks = profile.social.filter((link) => link.key !== 'email');
 ---
 
 <footer class="site-footer">
-  <div class="container site-footer__inner">
-    <div>
-      <p class="site-footer__name">{profile.name}</p>
-      <p class="site-footer__meta">
-        {profile.location} · <a href={`mailto:${profile.email}`}>{profile.email}</a>
-      </p>
+  <div class="container">
+    <div class="site-footer__contact">
+      {
+        profile.openToWork && (
+          <p class="site-footer__availability">
+            <span class="site-footer__availability-dot" aria-hidden="true" />
+            {profile.openToWorkLabel}
+          </p>
+        )
+      }
+
+      <h2 class="site-footer__title">Escribime</h2>
+
+      <div class="site-footer__channels">
+        <a class="site-footer__email" href={`mailto:${profile.email}`}>
+          <Icon name="email" size={18} />
+          {profile.email}
+        </a>
+
+        <button
+          class="site-footer__copy"
+          type="button"
+          hidden
+          data-copy-email={profile.email}
+        >
+          Copiar
+        </button>
+
+        {
+          linkedin && (
+            <a
+              class="site-footer__alt"
+              href={linkedin.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              o escribime por LinkedIn
+              <Icon name="external" size={14} />
+            </a>
+          )
+        }
+      </div>
+
+      <p class="site-footer__copy-status" role="status" aria-live="polite"></p>
     </div>
 
-    <nav class="site-footer__social" aria-label="Redes sociales">
-      {
-        profile.social
-          .filter((link) => link.key !== 'email')
-          .map((link) => (
+    <div class="site-footer__meta">
+      <p class="site-footer__name">{profile.name}</p>
+      <p class="site-footer__location">{profile.location}</p>
+
+      <nav class="site-footer__social" aria-label="Perfiles">
+        {
+          profileLinks.map((link) => (
             <a
               href={link.url}
               target="_blank"
@@ -31,8 +77,9 @@ const year = new Date().getFullYear();
               <Icon name={link.key} />
             </a>
           ))
-      }
-    </nav>
+        }
+      </nav>
+    </div>
   </div>
 
   <div class="container site-footer__colophon">
@@ -40,19 +87,137 @@ const year = new Date().getFullYear();
   </div>
 </footer>
 
+<script>
+  /*
+   * Copy-to-clipboard is an enhancement: the button ships hidden and is only
+   * revealed where the API exists, so nobody meets a control that does nothing.
+   */
+  const button = document.querySelector<HTMLButtonElement>('[data-copy-email]');
+  const status = document.querySelector<HTMLElement>('.site-footer__copy-status');
+  const address = button?.dataset.copyEmail;
+
+  if (button && address && navigator.clipboard) {
+    button.hidden = false;
+
+    let reset: number | undefined;
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(address);
+        if (status) status.textContent = 'Dirección copiada';
+      } catch {
+        if (status) status.textContent = 'No se pudo copiar — seleccioná la dirección';
+      }
+      window.clearTimeout(reset);
+      reset = window.setTimeout(() => {
+        if (status) status.textContent = '';
+      }, 4000);
+    });
+  }
+</script>
+
 <style>
   .site-footer {
     border-top: 1px solid var(--medano-surface-3);
-    padding-block: var(--medano-space-2xl) var(--medano-space-xl);
+    padding-block: var(--medano-space-3xl) var(--medano-space-xl);
     background: var(--medano-surface-1);
   }
 
-  .site-footer__inner {
+  .site-footer > .container:first-child {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--medano-space-2xl);
+  }
+
+  .site-footer__availability {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--medano-space-2xs);
+    padding: var(--medano-space-3xs) var(--medano-space-xs);
+    border-radius: var(--medano-radius-sm);
+    border-start-start-radius: var(--medano-radius-quiet);
+    background: var(--medano-accent-subtle);
+    color: var(--medano-accent-base);
+    font-size: var(--medano-text-xs);
+    font-weight: var(--medano-weight-medium, 500);
+    margin: 0 0 var(--medano-space-sm);
+  }
+
+  .site-footer__availability-dot {
+    width: 0.4375rem;
+    height: 0.4375rem;
+    border-radius: var(--medano-radius-full);
+    background: var(--medano-accent-base);
+  }
+
+  .site-footer__title {
+    font-size: var(--medano-text-xl);
+    font-weight: var(--medano-weight-semibold, 650);
+    margin: 0 0 var(--medano-space-sm);
+  }
+
+  /* Address and its two escapes read as one group. */
+  .site-footer__channels {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--medano-space-lg);
+    gap: var(--medano-space-sm);
+  }
+
+  .site-footer__email {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--medano-space-2xs);
+    min-height: 2.75rem;
+    color: var(--medano-ink-primary);
+    font-size: var(--medano-text-md);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .site-footer__email:hover {
+    color: var(--medano-accent-base);
+  }
+
+  .site-footer__copy {
+    min-height: 2.25rem;
+    padding-inline: var(--medano-space-sm);
+    border: 0;
+    border-radius: var(--medano-radius-sm);
+    border-start-start-radius: var(--medano-radius-quiet);
+    background: var(--medano-surface-3);
+    box-shadow: var(--medano-halo-edge);
+    color: var(--medano-ink-secondary);
+    font: inherit;
+    font-size: var(--medano-text-sm);
+    cursor: pointer;
+    transition: background-color var(--medano-duration-fast, 160ms) ease;
+  }
+
+  .site-footer__copy:hover {
+    background: var(--medano-surface-4);
+    color: var(--medano-ink-primary);
+  }
+
+  .site-footer__alt {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--medano-space-3xs, 0.25rem);
+    min-height: 2.75rem;
+    color: var(--medano-ink-secondary);
+    font-size: var(--medano-text-sm);
+  }
+
+  .site-footer__alt:hover {
+    color: var(--medano-accent-base);
+  }
+
+  .site-footer__copy-status {
+    color: var(--medano-ink-secondary);
+    font-size: var(--medano-text-sm);
+    margin: var(--medano-space-2xs) 0 0;
+    min-height: 1.25rem;
   }
 
   .site-footer__name {
@@ -60,14 +225,10 @@ const year = new Date().getFullYear();
     margin-block: 0 var(--medano-space-2xs);
   }
 
-  .site-footer__meta {
+  .site-footer__location {
     color: var(--medano-ink-muted);
     font-size: var(--medano-text-sm);
-    margin-block: 0;
-  }
-
-  .site-footer__meta a {
-    color: var(--medano-ink-secondary);
+    margin-block: 0 var(--medano-space-sm);
   }
 
   .site-footer__social {
@@ -90,9 +251,10 @@ const year = new Date().getFullYear();
     background: var(--medano-surface-3);
   }
 
+  /* Was ink-ghost: 3.18:1 dark / 3.78:1 light at 13px — below AA in both. */
   .site-footer__colophon {
-    margin-top: var(--medano-space-lg);
-    color: var(--medano-ink-ghost);
+    margin-top: var(--medano-space-2xl);
+    color: var(--medano-ink-muted);
     font-size: var(--medano-text-xs);
   }
 

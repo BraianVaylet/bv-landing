@@ -5,7 +5,7 @@
  * Real, machine-readable data (schema.org/Person) plus honest meta tags —
  * search engines and modern applicant trackers consume schema.org directly.
  */
-import { profile, experience, skillGroups, PRESENT } from '../data/cv';
+import { profile, experience, skillGroups } from '../data/cv';
 
 interface Props {
   title: string;
@@ -17,7 +17,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const ogImage = new URL('/og.svg', Astro.site).href;
 
 const allSkills = skillGroups.flatMap((group) => group.items);
-const currentRoles = experience.filter((job) => job.end === PRESENT);
+/*
+ * `worksFor` shipped empty because this filtered on `job.end`, a field
+ * `ExperienceItem` never had. There are no dates to filter on, so the current
+ * role is declared in the data instead — the same flag the page renders.
+ */
+const currentRoles = experience.filter((job) => job.current);
 
 const personSchema = {
   '@context': 'https://schema.org',

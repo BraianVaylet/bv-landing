@@ -15,3 +15,7 @@ Thumbs.db
 
 # vercel
 .vercel/
+
+# design tooling: critiques, screenshots and throwaway inspection harnesses
+.impeccable/
+.claude/skills/

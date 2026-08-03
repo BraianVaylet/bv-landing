@@ -48,10 +48,27 @@ void main() {
   float haze = fbm(vWorldPos.xy * 0.012 + vec2(uTime * 0.008, 0.0));
   col += (haze - 0.5) * 0.022;
 
-  /* Warm scattering halo around the moon, wide and soft. */
+  /* Warm scattering halo around the moon/sun. Night is wide and soft;
+     day is tighter and dimmer so the sun disc reads as a focal point
+     instead of bleaching the whole sky. */
   float md = distance(vWorldPos.xy, uMoonPos.xy);
-  float scatter = exp(-md * md * 0.00045);
-  col += uGlow * scatter * uGlowA * 0.9;
+  float scatterK = mix(0.0012, 0.00045, uNight);
+  float scatter = exp(-md * md * scatterK);
+  col += uGlow * scatter * uGlowA * mix(0.65, 0.9, uNight);
+
+  /* Day: wispy clouds drifting downwind (+x), stretched along the wind —
+     the daytime counterpart of the night's star field. On a pale sky
+     clouds read through their warm shadowed body, not through white. */
+  float dayF = 1.0 - uNight;
+  vec2 cp = vec2(vWorldPos.x * 0.010 - uTime * 0.004, vWorldPos.y * 0.035);
+  float cl = fbm(cp + fbm(cp * 2.1) * 0.35);
+  float cloudBand = smoothstep(0.16, 0.5, t);
+  float body = smoothstep(0.52, 0.78, cl) * cloudBand * dayF;
+  vec3 cloudTone = mix(uSkyTop * 0.9, uGlow, 0.35);
+  col = mix(col, cloudTone, body * 0.5);
+  /* Sunlit top edge of each wisp. */
+  float edge = smoothstep(0.66, 0.80, cl) * cloudBand * dayF;
+  col = mix(col, vec3(1.0, 0.99, 0.95), edge * 0.55);
 
   /* Star field: one candidate star per grid cell, few survive. */
   vec2 cellUv = vWorldPos.xy * 0.16;

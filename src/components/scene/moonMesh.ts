@@ -64,9 +64,11 @@ void main() {
   /* Night: warm tint right on the terminator, like low-angle sunlight. */
   float edgeGlow = smoothstep(0.0, 0.35, lit) * (1.0 - smoothstep(0.35, 1.0, lit));
   litCol = mix(litCol, uGlow, edgeGlow * 0.25 * uNight);
-  /* Day: golden limb darkening + HDR push so the sun feeds the bloom. */
-  litCol = mix(litCol, uGlow, day * pow(1.0 - n.z, 2.0) * 0.65);
-  litCol *= 1.0 + day * 0.4;
+  /* Day: golden body + limb darkening, pushed well into HDR — the golden
+     tint is what keeps the disc readable against the pale beige sky, and
+     the HDR excess feeds the bloom ring. */
+  litCol = mix(litCol, uGlow, day * (0.28 + pow(1.0 - n.z, 2.0) * 0.55));
+  litCol *= 1.0 + day * 0.75;
 
   /* Earthshine: the dark side is a faint translucent ghost disc (the sky
      and stars show through), the lit side is opaque. */

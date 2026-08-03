@@ -88,16 +88,18 @@ void main() {
   float depthT = clamp((18.0 - vWorldPos.z) / 150.0, 0.0, 1.0);
   vec3 base = depthRamp(depthT);
 
-  /* Moonlit wrap diffuse: harsher contrast at night, flatter by day. */
+  /* Sun/moon wrap diffuse. Day needs real sculpting too: a soft ambient
+     with strong directional light keeps the ridges readable instead of
+     washing the field into pale haze. */
   float diff = clamp(dot(n, uMoonDir), 0.0, 1.0);
   float wrap = diff * 0.65 + 0.35;
-  float ambient = mix(0.78, 0.44, uNight);
-  float direct = mix(0.42, 0.92, uNight);
+  float ambient = mix(0.58, 0.44, uNight);
+  float direct = mix(0.78, 0.92, uNight);
   vec3 col = base * (ambient + direct * wrap * uMoonLight);
 
   /* Lee slopes (facing away from the wind, -x normals) fall into shadow. */
   float lee = smoothstep(0.15, 0.7, -n.x);
-  col *= 1.0 - lee * mix(0.10, 0.22, uNight);
+  col *= 1.0 - lee * mix(0.17, 0.22, uNight);
 
   /* Crest light: ridge tops catch the moon. */
   float crest = smoothstep(0.68, 0.98, vHeight) * (0.35 + 0.65 * diff);
@@ -106,7 +108,7 @@ void main() {
   /* Sand glitter: sparse cells twinkling in discrete time steps. */
   float cell = hash12(floor(vWorldPos.xz * 9.0) + floor(uTime * 2.5) * 0.371);
   float glint = step(0.9982, cell) * diff * smoothstep(60.0, 12.0, vDist);
-  col += uSandB * glint * mix(0.6, 1.6, uNight);
+  col += uSandB * glint * mix(1.1, 1.6, uNight); /* day = harsh sun glare */
 
   /* Wind veil: streaks of airborne sand raking over the crests, pulsing
      with the gusts. Stretched along x = the wind direction. */
@@ -118,8 +120,10 @@ void main() {
   float veil = streak * smoothstep(0.45, 0.95, vHeight) * uSandAmount;
   col = mix(col, uSandA, veil * 0.42);
 
-  /* Exponential distance fog into the horizon. */
+  /* Exponential distance fog into the horizon. Day air is clearer —
+     full-strength fog over the pale sky color was bleaching the dunes. */
   float fog = 1.0 - exp(-vDist * ${TERRAIN.fogDensity.toFixed(4)});
+  fog *= mix(0.52, 1.0, uNight);
   col = mix(col, uFog, fog);
 
   gl_FragColor = vec4(col, 1.0);

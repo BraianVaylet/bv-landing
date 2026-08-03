@@ -1,11 +1,15 @@
 ---
 /**
- * Animated hero background: sky gradient, phase-shifting moon (scroll-linked),
- * two SVG dune layers and a canvas of wind-blown sand between them.
+ * Animated hero background, two tiers:
  *
- * Purely decorative (aria-hidden). Server-renders a full moon so the scene
- * looks right before hydration and without JavaScript; scene.ts takes over on
- * the client.
+ * 1. Server-rendered SVG scene (sky gradient, full moon, dune layers) —
+ *    visible immediately, and the permanent experience without JavaScript
+ *    or WebGL.
+ * 2. A WebGL scene (three.js: shader dunes, GPU sand, phase-shifting moon,
+ *    bloom) lazy-loaded on idle. When it initializes it sets `data-webgl`
+ *    and crossfades over the SVG.
+ *
+ * Purely decorative (aria-hidden).
  */
 import { DUNE_VIEWBOX, FAR_DUNES, NEAR_DUNES } from './geometry';
 import { MOON_RADIUS, moonPathD } from './moon';
@@ -36,8 +40,6 @@ const fullMoonPath = moonPathD(0);
     {FAR_DUNES.map((dune) => <path d={dune.d} style={`fill: var(${dune.colorVar})`} />)}
   </svg>
 
-  <canvas class="scene-canvas" data-scene-canvas></canvas>
-
   <svg
     class="dune-layer dune-layer--near"
     data-dune-layer="near"
@@ -46,14 +48,25 @@ const fullMoonPath = moonPathD(0);
   >
     {NEAR_DUNES.map((dune) => <path d={dune.d} style={`fill: var(${dune.colorVar})`} />)}
   </svg>
+
+  <canvas class="scene-webgl" data-scene-webgl></canvas>
 </div>
 
 <script>
-  import { initDuneScene } from './scene';
-
-  document
-    .querySelectorAll<HTMLElement>('[data-dune-scene]')
-    .forEach((scene) => initDuneScene(scene));
+  const scenes = document.querySelectorAll<HTMLElement>('[data-dune-scene]');
+  if (scenes.length > 0) {
+    // three.js is a heavy async chunk: load it after the page settles so the
+    // SVG scene owns first paint and LCP stays untouched.
+    const boot = async () => {
+      const { initDuneScene } = await import('./scene');
+      scenes.forEach((scene) => initDuneScene(scene));
+    };
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => void boot(), { timeout: 1500 });
+    } else {
+      setTimeout(() => void boot(), 200);
+    }
+  }
 </script>
 
 <style>
@@ -74,8 +87,7 @@ const fullMoonPath = moonPathD(0);
     top: 0;
     width: clamp(76px, 14vmin, 148px);
     aspect-ratio: 1;
-    will-change: transform;
-    /* No-JS resting spot; scene.ts overrides with precise px transforms. */
+    /* SVG fallback resting spot (matches the WebGL scene's scroll-0 moon). */
     transform: translate3d(calc(72vw - 50%), calc(18vh - 50%), 0);
     filter: drop-shadow(0 0 26px var(--scene-moon-glow));
   }
@@ -104,10 +116,23 @@ const fullMoonPath = moonPathD(0);
     height: 42%;
   }
 
-  .scene-canvas {
+  .scene-webgl {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
+    opacity: 0;
+    transition: opacity 700ms ease;
+  }
+
+  /* WebGL ready: crossfade canvas in, SVG scene out (kept for fallback). */
+  .dune-scene[data-webgl='on'] .scene-webgl {
+    opacity: 1;
+  }
+
+  .dune-scene[data-webgl='on'] .scene-moon,
+  .dune-scene[data-webgl='on'] .dune-layer {
+    opacity: 0;
+    transition: opacity 700ms ease;
   }
 </style>

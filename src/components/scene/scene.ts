@@ -1,134 +1,110 @@
 /**
- * Dune scene orchestrator: one rAF loop drives the scroll-linked moon
- * (phase + position) and the wind-blown sand particles.
+ * Dune scene orchestrator (WebGL). One rAF loop drives:
+ *  - the scroll-linked moon (real phase terminator + descent behind dunes),
+ *  - the wind (gust envelope -> accumulated wind distance uniform),
+ *  - GPU sand, breathing dunes, sky, and the post chain.
  *
- * Lifecycle: the loop only runs while the scene is on screen, the tab is
- * visible and the user accepts motion. `prefers-reduced-motion` renders a
- * static scene (dunes + full moon, no sand, no scroll listener).
+ * Lifecycle mirrors the old canvas scene: the loop only runs while the scene
+ * is on screen, the tab is visible and the user accepts motion.
+ * `prefers-reduced-motion` renders a static frame (full moon, no sand).
+ * If WebGL init fails the `data-webgl` attribute is never set and the
+ * server-rendered SVG scene stays visible.
  */
-import { DUNE_VIEWBOX, FAR_DUNES, NEAR_DUNES } from './geometry';
-import { MOON_PHASE_STEPS, moonPathD, quantizePhase } from './moon';
-import { SandParticles } from './particles';
+import * as THREE from 'three';
+import { createSceneUniforms, applyThemeToUniforms } from './theme';
+import { createDunes } from './dunes';
+import { createSand } from './sand';
+import { createMoon } from './moonMesh';
+import { createSky } from './sky';
+import { createPost } from './post';
 
-const DPR_CAP = 2;
+const DPR_CAP_DESKTOP = 2;
+const DPR_CAP_MOBILE = 1.75;
 const MAX_FRAME_DT_S = 0.05;
-const PARTICLE_CAP_DESKTOP = 120;
-const PARTICLE_CAP_MOBILE = 60;
 const MOBILE_MAX_WIDTH_PX = 768;
 
-/** Wind model (px/s). Gusts periodically tear sand off a crest. */
-const WIND_BASE_SPEED = 34;
+/** Wind model in world units/s. Gusts accelerate every grain coherently. */
+const WIND_BASE_SPEED = 2.1;
 const GUST_EVERY_MIN_S = 4;
 const GUST_EVERY_MAX_S = 7;
-const GUST_DURATION_MIN_S = 1.2;
-const GUST_DURATION_MAX_S = 2.0;
-const GUST_STRENGTH_MIN = 2.5;
-const GUST_STRENGTH_MAX = 3.5;
-/** Ambient trickle of sand, always present while animating. */
-const AMBIENT_SPAWNS_PER_S = 10;
-/** Extra spawns per second at the gusting crest. */
-const GUST_SPAWNS_PER_S = 55;
+const GUST_DURATION_MIN_S = 1.4;
+const GUST_DURATION_MAX_S = 2.4;
+const GUST_STRENGTH_MIN = 2.4;
+const GUST_STRENGTH_MAX = 3.4;
+const SAND_CALM = 0.34;
 
-/** Moon travel across the scene, as fractions of the scene box. */
-const MOON_START = { x: 0.72, y: 0.18 };
-const MOON_END = { x: 0.58, y: 0.94 };
+/**
+ * Moon/sun travel (world units) as the user scrolls through the hero.
+ * z sits BEHIND the whole terrain (which ends at z = -132), so every dune
+ * row occludes the disc as it sets — it can never float over a far dune.
+ */
+const MOON_START = new THREE.Vector3(18, 21, -136);
+const MOON_END = new THREE.Vector3(6, -9, -136);
+/** The dune field pivot the moon "lights" from wherever it is. */
+const LIGHT_TARGET = new THREE.Vector3(0, 0, -45);
 
 function randBetween(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
-interface CrestPoint {
-  x: number;
-  y: number;
-}
-
 export function initDuneScene(root: HTMLElement): void {
   const hero = root.closest<HTMLElement>('[data-hero]') ?? root.parentElement;
-  const moonSvg = root.querySelector<SVGSVGElement>('[data-scene-moon]');
-  const moonLit = root.querySelector<SVGPathElement>('[data-moon-lit]');
-  const canvas = root.querySelector<HTMLCanvasElement>('[data-scene-canvas]');
-  const duneLayers = Array.from(
-    root.querySelectorAll<SVGSVGElement>('[data-dune-layer]'),
-  );
-  if (!hero || !moonSvg || !moonLit || !canvas) return;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+  const canvas = root.querySelector<HTMLCanvasElement>('[data-scene-webgl]');
+  if (!hero || !canvas) return;
 
+  const isMobile = window.matchMedia(
+    `(max-width: ${MOBILE_MAX_WIDTH_PX}px)`,
+  ).matches;
   const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-  // --- geometry / layout caches (refreshed on resize) ----------------------
-  let sceneWidth = 0;
-  let sceneHeight = 0;
+  let renderer: THREE.WebGLRenderer;
+  try {
+    renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: false,
+      powerPreference: 'high-performance',
+    });
+  } catch {
+    return; // no WebGL: the SVG scene stays
+  }
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 400);
+
+  const uniforms = createSceneUniforms();
+  scene.add(createDunes(uniforms, isMobile ? { x: 160, z: 96 } : { x: 280, z: 150 }));
+  scene.add(createSand(uniforms, isMobile ? 1600 : 4500));
+  scene.add(createSky(uniforms));
+  const moon = createMoon(uniforms);
+  scene.add(moon.group);
+
+  const post = createPost(renderer, scene, camera);
+  post.setNight(applyThemeToUniforms(root, uniforms).night);
+
+  // --- layout / scroll caches ---------------------------------------------
   let heroTop = 0;
   let scrollRange = 1;
-  let moonHalf = 0;
-  /** Crest spawn points in scene px; near-dune crests included twice (bias). */
-  let crests: CrestPoint[] = [];
-
-  const particles = new SandParticles(
-    window.innerWidth <= MOBILE_MAX_WIDTH_PX
-      ? PARTICLE_CAP_MOBILE
-      : PARTICLE_CAP_DESKTOP,
-  );
-
-  let sandColors = readSandColors();
-
-  // --- animation state -----------------------------------------------------
-  let rafId = 0;
-  let lastTs = 0;
-  let running = false;
-  let sceneVisible = true;
-  let lastPhaseStep = -1;
-  let ambientCarry = 0;
-  let gustCarry = 0;
-  let windSpeed = WIND_BASE_SPEED;
-  let gustCrest: CrestPoint | null = null;
-  let gustElapsed = 0;
-  let gustDuration = 0;
-  let gustStrength = 1;
-  let nextGustIn = randBetween(GUST_EVERY_MIN_S, GUST_EVERY_MAX_S);
-
-  function readSandColors() {
-    const styles = getComputedStyle(root);
-    return {
-      a: styles.getPropertyValue('--scene-sand-a').trim() || '#de876b',
-      b: styles.getPropertyValue('--scene-sand-b').trim() || '#ebad97',
-    };
-  }
+  /** False until a measure succeeds (init can happen while display-hidden). */
+  let measured = false;
 
   function measure(): void {
-    const sceneRect = root.getBoundingClientRect();
-    // Mid-resize (or display:none) the rect can be 0 — keep the last good
-    // layout instead of collapsing the canvas; the next resize re-measures.
-    if (sceneRect.width === 0 || sceneRect.height === 0) return;
-    sceneWidth = sceneRect.width;
-    sceneHeight = sceneRect.height;
+    const rect = root.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    measured = true;
     heroTop = hero!.getBoundingClientRect().top + window.scrollY;
     scrollRange = Math.max(1, hero!.offsetHeight - window.innerHeight);
-    moonHalf = moonSvg!.clientWidth / 2;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
-    canvas!.width = Math.round(sceneWidth * dpr);
-    canvas!.height = Math.round(sceneHeight * dpr);
-    ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    crests = [];
-    for (const layer of duneLayers) {
-      const rect = layer.getBoundingClientRect();
-      const offsetX = rect.left - sceneRect.left;
-      const offsetY = rect.top - sceneRect.top;
-      const scaleX = rect.width / DUNE_VIEWBOX.width;
-      const scaleY = rect.height / DUNE_VIEWBOX.height;
-      const isNear = layer.dataset.duneLayer === 'near';
-      const dunes = isNear ? NEAR_DUNES : FAR_DUNES;
-      for (const dune of dunes) {
-        for (const [cx, cy] of dune.crests) {
-          const point = { x: offsetX + cx * scaleX, y: offsetY + cy * scaleY };
-          crests.push(point);
-          if (isNear) crests.push(point); // near crests shed twice as often
-        }
-      }
-    }
+    const dpr = Math.min(
+      window.devicePixelRatio || 1,
+      isMobile ? DPR_CAP_MOBILE : DPR_CAP_DESKTOP,
+    );
+    renderer.setPixelRatio(dpr);
+    renderer.setSize(rect.width, rect.height, false);
+    post.setSize(rect.width, rect.height);
+    camera.aspect = rect.width / rect.height;
+    camera.updateProjectionMatrix();
+    uniforms.uPointScale.value = (rect.height * dpr) / 720;
   }
 
   function scrollProgress(): number {
@@ -136,75 +112,92 @@ export function initDuneScene(root: HTMLElement): void {
     return Math.min(1, Math.max(0, progress));
   }
 
-  function updateMoon(progress: number): void {
-    const x = (MOON_START.x + (MOON_END.x - MOON_START.x) * progress) * sceneWidth;
-    const y = (MOON_START.y + (MOON_END.y - MOON_START.y) * progress) * sceneHeight;
-    moonSvg!.style.transform = `translate3d(${(x - moonHalf).toFixed(1)}px, ${(y - moonHalf).toFixed(1)}px, 0)`;
-
-    const step = Math.round(quantizePhase(progress) * MOON_PHASE_STEPS);
-    if (step !== lastPhaseStep) {
-      lastPhaseStep = step;
-      moonLit!.setAttribute('d', moonPathD(step / MOON_PHASE_STEPS));
-    }
-  }
+  // --- animation state -----------------------------------------------------
+  let rafId = 0;
+  let lastTs = 0;
+  let running = false;
+  let sceneVisible = true;
+  let windSpeed = WIND_BASE_SPEED;
+  let gustElapsed = 0;
+  let gustDuration = 0;
+  let gustStrength = 1;
+  let gusting = false;
+  let nextGustIn = randBetween(GUST_EVERY_MIN_S, GUST_EVERY_MAX_S);
+  let pointerX = 0;
+  let pointerY = 0;
+  let parallaxX = 0;
+  let parallaxY = 0;
 
   function updateWind(dt: number): void {
-    if (gustCrest) {
+    let envelope = 0;
+    if (gusting) {
       gustElapsed += dt;
       if (gustElapsed >= gustDuration) {
-        gustCrest = null;
+        gusting = false;
         nextGustIn = randBetween(GUST_EVERY_MIN_S, GUST_EVERY_MAX_S);
       } else {
-        // Half-sine envelope: ramps up, peaks mid-gust, dies down.
-        const envelope = Math.sin((gustElapsed / gustDuration) * Math.PI);
-        windSpeed = WIND_BASE_SPEED * (1 + (gustStrength - 1) * envelope);
-        return;
+        envelope = Math.sin((gustElapsed / gustDuration) * Math.PI);
+      }
+    } else {
+      nextGustIn -= dt;
+      if (nextGustIn <= 0) {
+        gusting = true;
+        gustElapsed = 0;
+        gustDuration = randBetween(GUST_DURATION_MIN_S, GUST_DURATION_MAX_S);
+        gustStrength = randBetween(GUST_STRENGTH_MIN, GUST_STRENGTH_MAX);
       }
     }
-    windSpeed = WIND_BASE_SPEED;
-    nextGustIn -= dt;
-    if (nextGustIn <= 0 && crests.length > 0) {
-      gustCrest = crests[Math.floor(Math.random() * crests.length)];
-      gustElapsed = 0;
-      gustDuration = randBetween(GUST_DURATION_MIN_S, GUST_DURATION_MAX_S);
-      gustStrength = randBetween(GUST_STRENGTH_MIN, GUST_STRENGTH_MAX);
-    }
+    windSpeed = WIND_BASE_SPEED * (1 + (gustStrength - 1) * envelope);
+    uniforms.uWindDist.value += windSpeed * dt;
+
+    const sandTarget = SAND_CALM + envelope * (0.95 - SAND_CALM);
+    const amount = uniforms.uSandAmount.value;
+    uniforms.uSandAmount.value = amount + (sandTarget - amount) * Math.min(1, dt * 2.2);
+    uniforms.uSandLift.value = 0.22 + envelope * 1.1;
   }
 
-  function spawnSand(dt: number): void {
-    if (crests.length === 0) return;
-    ambientCarry += AMBIENT_SPAWNS_PER_S * dt;
-    while (ambientCarry >= 1) {
-      ambientCarry -= 1;
-      const crest = crests[Math.floor(Math.random() * crests.length)];
-      particles.spawn(crest.x + randBetween(-14, 6), crest.y, windSpeed);
-    }
-    if (gustCrest) {
-      gustCarry += GUST_SPAWNS_PER_S * dt;
-      while (gustCarry >= 1) {
-        gustCarry -= 1;
-        particles.spawn(
-          gustCrest.x + randBetween(-24, 10),
-          gustCrest.y + randBetween(-3, 3),
-          windSpeed,
-        );
-      }
-    }
+  function updateScroll(progress: number): void {
+    uniforms.uPhase.value = progress * 0.96;
+    uniforms.uMoonLight.value = 1 - progress * 0.38;
+    uniforms.uMoonPos.value.lerpVectors(MOON_START, MOON_END, progress);
+    moon.group.position.copy(uniforms.uMoonPos.value);
+    moon.group.lookAt(camera.position);
+    uniforms.uMoonDir.value
+      .copy(uniforms.uMoonPos.value)
+      .sub(LIGHT_TARGET)
+      .normalize();
+
+    camera.position.set(
+      parallaxX * 0.55,
+      4.3 - progress * 0.6 + parallaxY * 0.3,
+      8 - progress * 1.2,
+    );
+    camera.lookAt(parallaxX * 0.35, 6.2 - progress * 3.4, -60);
   }
 
   function frame(ts: number): void {
     if (!running) return;
+    if (!measured) measure();
     const dt = Math.min(MAX_FRAME_DT_S, (ts - lastTs) / 1000 || 0);
     lastTs = ts;
 
-    updateMoon(scrollProgress());
+    uniforms.uTime.value += dt;
+    uniforms.uWindTime.value += dt;
+    parallaxX += (pointerX - parallaxX) * Math.min(1, dt * 3);
+    parallaxY += (pointerY - parallaxY) * Math.min(1, dt * 3);
+
     updateWind(dt);
-    spawnSand(dt);
-    particles.step(dt, sceneWidth, sceneHeight);
-    ctx!.clearRect(0, 0, sceneWidth, sceneHeight);
-    particles.draw(ctx!, sandColors);
+    updateScroll(scrollProgress());
+    post.composer.render();
 
     rafId = requestAnimationFrame(frame);
+  }
+
+  /** Static frame for reduced motion: resting full moon, still air. */
+  function renderStatic(): void {
+    uniforms.uSandAmount.value = 0;
+    updateScroll(0);
+    post.composer.render();
   }
 
   function syncRunning(): void {
@@ -221,26 +214,28 @@ export function initDuneScene(root: HTMLElement): void {
   }
 
   function applyReducedMotion(): void {
-    if (reducedMotionQuery.matches) {
-      particles.clear();
-      ctx!.clearRect(0, 0, sceneWidth, sceneHeight);
-      lastPhaseStep = -1;
-      updateMoon(0); // static full moon at the resting position
-    }
     syncRunning();
+    if (reducedMotionQuery.matches) renderStatic();
   }
 
   // --- wire-up -------------------------------------------------------------
   measure();
-  updateMoon(reducedMotionQuery.matches ? 0 : scrollProgress());
+  if (reducedMotionQuery.matches) renderStatic();
+  root.setAttribute('data-webgl', 'on');
+
+  canvas.addEventListener('webglcontextlost', (event) => {
+    event.preventDefault();
+    running = false;
+    cancelAnimationFrame(rafId);
+    root.removeAttribute('data-webgl'); // fall back to the SVG scene
+  });
 
   let resizeTimer = 0;
   const resizeObserver = new ResizeObserver(() => {
     window.clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(() => {
       measure();
-      lastPhaseStep = -1;
-      updateMoon(reducedMotionQuery.matches ? 0 : scrollProgress());
+      if (!running) renderStatic();
     }, 120);
   });
   resizeObserver.observe(root);
@@ -256,8 +251,21 @@ export function initDuneScene(root: HTMLElement): void {
   document.addEventListener('visibilitychange', syncRunning);
   reducedMotionQuery.addEventListener('change', applyReducedMotion);
 
+  // Subtle parallax; pointermove fires only on mouse-ish inputs we care about.
+  if (!isMobile) {
+    window.addEventListener(
+      'pointermove',
+      (event) => {
+        pointerX = (event.clientX / window.innerWidth - 0.5) * 2;
+        pointerY = (event.clientY / window.innerHeight - 0.5) * -2;
+      },
+      { passive: true },
+    );
+  }
+
   new MutationObserver(() => {
-    sandColors = readSandColors();
+    post.setNight(applyThemeToUniforms(root, uniforms).night);
+    if (!running) renderStatic();
   }).observe(document.documentElement, {
     attributes: true,
     attributeFilter: ['data-theme'],

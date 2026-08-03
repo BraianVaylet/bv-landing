@@ -73,7 +73,7 @@ varying float vTone;
 void main() {
   if (vFade < 0.004) discard;
   float d = length(gl_PointCoord - 0.5);
-  float alpha = smoothstep(0.5, 0.12, d) * vFade * mix(0.55, 0.8, uNight);
+  float alpha = smoothstep(0.5, 0.12, d) * vFade * mix(0.68, 0.8, uNight);
   vec3 col = mix(uSandA, uSandB, step(0.5, vTone));
   gl_FragColor = vec4(col, alpha);
 }

@@ -3,8 +3,12 @@
  * Presentation section. Taller than the viewport with a sticky inner stage:
  * the user scrolls "through" the hero while the moon wanes and sets behind
  * the dunes, then the page continues normally.
+ *
+ * The stage is `min-height`, not `height`: a recruiter at 200% text zoom (or a
+ * short in-app webview) must never have the actions clipped out of reach. The
+ * scene clips itself, so the stage doesn't need to.
  */
-import { profile } from '../data/cv';
+import { profile, featuredSkills } from '../data/cv';
 import DuneScene from './scene/DuneScene.astro';
 ---
 
@@ -12,22 +16,35 @@ import DuneScene from './scene/DuneScene.astro';
   <div class="hero__stage">
     <DuneScene />
     <div class="hero__content container">
-      <p class="eyebrow">{profile.headline}</p>
+      <p class="hero__intro">
+        <span class="eyebrow">{profile.headline}</span>
+        {
+          profile.openToWork && (
+            <span class="hero__availability">
+              <span class="hero__availability-dot" aria-hidden="true" />
+              {profile.openToWorkLabel}
+            </span>
+          )
+        }
+      </p>
       <h1 class="hero__title">
         Hola, soy <span class="hero__name">{profile.firstName} {profile.lastName}</span>
       </h1>
       <p class="hero__tagline">{profile.about[0]}</p>
+      <ul class="hero__skills" role="list" aria-label="Tecnologías principales">
+        {featuredSkills.map((skill) => <li class="hero__skill">{skill}</li>)}
+      </ul>
       <div class="hero__actions">
-        <a class="medano-button" data-variant="primary" data-size="lg" href="#proyectos">
-          Ver proyectos
-        </a>
         <a
           class="medano-button"
-          data-variant="secondary"
+          data-variant="primary"
           data-size="lg"
           href={`mailto:${profile.email}`}
         >
           Contactame
+        </a>
+        <a class="medano-button" data-variant="secondary" data-size="lg" href="#experiencia">
+          Ver experiencia
         </a>
       </div>
     </div>
@@ -43,15 +60,44 @@ import DuneScene from './scene/DuneScene.astro';
   .hero__stage {
     position: sticky;
     top: 0;
-    height: 100dvh;
-    overflow: hidden;
+    min-height: 100dvh;
   }
 
   .hero__content {
     position: relative;
     z-index: 1;
-    padding-top: 20dvh;
+    padding-block: 16dvh var(--medano-space-3xl);
     max-width: min(42rem, 100%);
+  }
+
+  /* Title line + availability pill share a baseline row and wrap together. */
+  .hero__intro {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--medano-space-sm);
+    margin: 0;
+  }
+
+  .hero__availability {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--medano-space-2xs);
+    padding: var(--medano-space-3xs) var(--medano-space-xs);
+    border-radius: var(--medano-radius-sm);
+    border-start-start-radius: var(--medano-radius-quiet);
+    background: var(--medano-accent-subtle);
+    color: var(--medano-accent-base);
+    font-size: var(--medano-text-xs);
+    font-weight: var(--medano-weight-medium, 500);
+  }
+
+  /* Drawn, not animated: the scene is the page's only self-driven motion. */
+  .hero__availability-dot {
+    width: 0.4375rem;
+    height: 0.4375rem;
+    border-radius: var(--medano-radius-full);
+    background: var(--medano-accent-base);
   }
 
   .hero__title {
@@ -69,13 +115,46 @@ import DuneScene from './scene/DuneScene.astro';
     color: var(--medano-ink-secondary);
     font-size: var(--medano-text-lg);
     line-height: 1.6;
-    margin-block: 0 var(--medano-space-xl);
+    margin-block: 0 var(--medano-space-md);
     max-width: 36rem;
+  }
+
+  /* Labels, not controls: they answer a question rather than offering choices. */
+  .hero__skills {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--medano-space-2xs);
+    margin: 0 0 var(--medano-space-xl);
+    padding: 0;
+    max-width: 36rem;
+  }
+
+  .hero__skill {
+    padding: var(--medano-space-2xs) var(--medano-space-xs);
+    border-radius: var(--medano-radius-sm);
+    border-start-start-radius: var(--medano-radius-quiet);
+    background: var(--medano-surface-2);
+    box-shadow: var(--medano-halo-edge);
+    color: var(--medano-ink-secondary);
+    font-size: var(--medano-text-xs);
+    line-height: 1.5;
   }
 
   .hero__actions {
     display: flex;
     flex-wrap: wrap;
     gap: var(--medano-space-sm);
+  }
+
+  /*
+   * Narrow viewports reflow the tagline to ~7 lines, which — with the skill
+   * chips added — pushed the actions to within 10px of the fold. Buy the room
+   * back from the top offset rather than from the copy.
+   */
+  @media (max-width: 40rem) {
+    .hero__content {
+      padding-block: 10dvh var(--medano-space-2xl);
+    }
   }
 </style>

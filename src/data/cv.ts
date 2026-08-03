@@ -21,9 +21,15 @@ export interface SocialLink {
 
 export interface ExperienceItem {
   role: string;
-  company: string;  
+  company: string;
   /** Path under /public (e.g. "/logos/globant.svg"). Monogram fallback when absent. */
   logo?: string;
+  /**
+   * The role Braian holds today. There are no dates on this list by design, so
+   * this is the only chronology the page can honestly show — exactly one entry
+   * carries it, and it must match `profile.company`.
+   */
+  current?: boolean;
 }
 
 /**
@@ -58,8 +64,8 @@ export interface SkillGroup {
   items: string[];
 }
 
-/** Sentinel for ongoing roles — kept as a constant to avoid magic strings. */
-export const PRESENT = 'Presente';
+/** Declared once: it is both a `mailto:` target and visible copy. */
+const EMAIL = 'braianvaylet@gmail.com';
 
 export const profile = {
   name: 'Braian D. Vaylet',
@@ -70,14 +76,27 @@ export const profile = {
   role: 'Web UI Developer Senior',
   company: 'Globant',
   location: 'Bahía Blanca, Buenos Aires, Argentina',
-  email: 'braianvaylet@gmail.com',
+  email: EMAIL,
   yearsOfExperience: 5,
   /** Availability signal for recruiters — flip to false when not looking. */
   openToWork: true,
+  /** Label for the hero availability pill. Only rendered while `openToWork`. */
+  openToWorkLabel: 'Abierto a propuestas',
   about: [
     "Desarrollador de Software con más de 6 años de experiencia creando productos digitales modernos, escalables y centrados en la experiencia del usuario. He colaborado con empresas y startups, desarrollando soluciones de alto impacto junto a equipos multidisciplinarios."
   ],
+  /**
+   * Contact channels, in the order a decided recruiter would try them. Email
+   * leads because it is the one that reaches Braian directly; components that
+   * render *profiles* (the header icon row, JSON-LD `sameAs`) filter it out.
+   */
   social: [
+    {
+      key: 'email',
+      label: 'Email',
+      url: `mailto:${EMAIL}`,
+      handle: EMAIL,
+    },
     {
       key: 'github',
       label: 'GitHub',
@@ -102,8 +121,9 @@ export const profile = {
 export const experience: ExperienceItem[] = [
   {
     role: 'Web UI Developer Senior',
-    company: 'Globant',        
+    company: 'Globant',
     logo: '/logos/globant.jpg',
+    current: true,
   },
   {
     role: 'Full Stack Developer',
@@ -276,6 +296,26 @@ export const projects: ProjectItem[] = [
     url: 'https://github.com/BraianVaylet/bv-medano-ui',
     logo: "/logos/projects/bv-medano-ui.png"
   },  
+];
+
+/**
+ * The subset of `skillGroups` rendered in the hero, ordered for a recruiter's
+ * first scan rather than by category. Kept short on purpose: the hero answers
+ * "what does he work in" in one glance, and `skillGroups` below stays the
+ * complete record for SEO and JSON-LD. Every entry must exist verbatim in
+ * `skillGroups` — this is a view of that data, not a second source of truth.
+ */
+export const featuredSkills: string[] = [
+  'React',
+  'TypeScript',
+  'JavaScript',
+  'Next.js',
+  'React Native',
+  'Astro',
+  'Node.js',
+  'GraphQL',
+  'AWS',
+  'Accesibilidad (WCAG)',
 ];
 
 /** Used for SEO keywords and the JSON-LD `knowsAbout` field. */

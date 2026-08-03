@@ -1,7 +1,13 @@
 ---
 /**
- * Sticky top bar: monogram/home link, section anchors, social + contact
- * icon links and the theme toggle.
+ * Sticky top bar: monogram/home link, section anchors, the persistent contact
+ * action, profile icon links and the theme toggle.
+ *
+ * The contact button is the page's conversion control, so it rides along at
+ * every scroll position — but the hero already shows the same ember action, and
+ * this system allows one primary per view. A small observer hides it while the
+ * hero is on screen and reveals it for the rest of the page. With JS off it
+ * simply stays visible: redundant, never missing.
  */
 import { profile } from '../data/cv';
 import Icon from './Icon.astro';
@@ -12,6 +18,10 @@ const sectionLinks = [
   { href: '#capacitaciones', label: 'Capacitaciones' },
   { href: '#proyectos', label: 'Proyectos' },
 ];
+
+const email = profile.social.find((link) => link.key === 'email');
+/** Profiles only — email has its own button. */
+const profileLinks = profile.social.filter((link) => link.key !== 'email');
 ---
 
 <header class="site-header">
@@ -22,24 +32,75 @@ const sectionLinks = [
       {sectionLinks.map((link) => <a href={link.href}>{link.label}</a>)}
     </nav>
 
-    <nav class="site-header__social" aria-label="Contacto y redes">
+    <div class="site-header__end">
       {
-        profile.social.map((link) => (
+        email && (
           <a
-            href={link.url}
-            aria-label={link.label}
-            {...(link.key !== 'email'
-              ? { target: '_blank', rel: 'noopener noreferrer' }
-              : {})}
+            class="medano-button site-header__cta"
+            data-variant="primary"
+            data-size="sm"
+            data-hero-visible
+            href={email.url}
           >
-            <Icon name={link.key} />
+            Contactame
           </a>
-        ))
+        )
       }
-      <ThemeToggle />
-    </nav>
+
+      <nav class="site-header__social" aria-label="Perfiles">
+        {
+          profileLinks.map((link) => (
+            <a
+              href={link.url}
+              aria-label={link.label}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Icon name={link.key} />
+            </a>
+          ))
+        }
+        <ThemeToggle />
+      </nav>
+    </div>
   </div>
 </header>
+
+<noscript>
+  <!-- No observer to reveal it, so the contact action is simply always there.
+       Beats the scoped hidden rule on specificity, hence the !important. -->
+  <style>
+    .site-header__cta[data-hero-visible] {
+      opacity: 1 !important;
+      visibility: visible !important;
+      transform: none !important;
+    }
+  </style>
+</noscript>
+
+<script>
+  /*
+   * One ember action per view: the hero owns it while it is on screen, the
+   * header owns it afterwards. Attribute-driven so the CSS keeps the states.
+   */
+  const cta = document.querySelector<HTMLElement>('.site-header__cta');
+  const hero = document.querySelector('#inicio');
+
+  if (cta && hero) {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        cta.toggleAttribute('data-hero-visible', entry.isIntersecting);
+      },
+      /*
+       * Shrunk by more than the sticky bar: jumping to #experiencia lands with
+       * the hero's last 5rem (its `scroll-margin-top`) still on screen, and the
+       * button has to be there when the reader arrives at the first section.
+       */
+      { threshold: 0, rootMargin: '-96px 0px 0px 0px' },
+    );
+    observer.observe(hero);
+  }
+</script>
 
 <style>
   .site-header {
@@ -80,11 +141,33 @@ const sectionLinks = [
     color: var(--medano-ink-primary);
   }
 
+  .site-header__end {
+    display: flex;
+    align-items: center;
+    gap: var(--medano-space-sm);
+    margin-inline-start: auto;
+  }
+
+  /*
+   * Hidden — not removed — while the hero owns the ember action, so the bar
+   * never reflows around it. `visibility` keeps it out of the tab order.
+   */
+  .site-header__cta[data-hero-visible] {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-0.25rem);
+  }
+
+  .site-header__cta {
+    transition:
+      opacity var(--medano-duration-fast, 160ms) ease,
+      transform var(--medano-duration-fast, 160ms) ease;
+  }
+
   .site-header__social {
     display: flex;
     align-items: center;
     gap: var(--medano-space-2xs);
-    margin-inline-start: auto;
   }
 
   .site-header__social a {
@@ -102,9 +185,23 @@ const sectionLinks = [
     background: var(--medano-surface-2);
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .site-header__cta {
+      transition: opacity var(--medano-duration-fast, 160ms) ease;
+    }
+
+    .site-header__cta[data-hero-visible] {
+      transform: none;
+    }
+  }
+
   @media (max-width: 40rem) {
     .site-header__nav {
       display: none;
+    }
+
+    .site-header__end {
+      gap: var(--medano-space-2xs);
     }
   }
 </style>
